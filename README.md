@@ -3,7 +3,20 @@
 A comprehensive Streamlit-based financial chatbot that provides personalized financial guidance using AI. The assistant features a modern dark theme with attractive Poppins font, adapts its communication style based on user demographics and risk tolerance, and provides advanced financial tools including savings goal tracking, spending alerts, and investment calculators.
 
 ## Features
+## Technical Architecture
 
+### Core Components
+- **app.py**: Main Streamlit application
+- **config.py**: Configuration settings and templates
+- **utils.py**: Utility functions for calculations and analysis
+- **requirements.txt**: Python dependencies
+
+### Key Technologies
+- **Streamlit**: Web interface framework
+- **Pandas**: Data analysis and calculations
+- **Plotly**: Interactive visualizations
+- **Transformers**: AI model integration (Granite/DialoGPT)
+- **Matplotlib**: Additional charting capabilities
 ### 🎯 Core Functionality
 - **Personalized Chat Interface**: Natural language financial conversations with AI
 - **Enhanced User Profiling**: Age, income, goals, demographic, and risk tolerance assessment
@@ -129,21 +142,6 @@ A comprehensive Streamlit-based financial chatbot that provides personalized fin
   - Transport: ₹10,000
   - Business: ₹50,000
   - Others: ₹25,000
-
-## Technical Architecture
-
-### Core Components
-- **app.py**: Main Streamlit application
-- **config.py**: Configuration settings and templates
-- **utils.py**: Utility functions for calculations and analysis
-- **requirements.txt**: Python dependencies
-
-### Key Technologies
-- **Streamlit**: Web interface framework
-- **Pandas**: Data analysis and calculations
-- **Plotly**: Interactive visualizations
-- **Transformers**: AI model integration (Granite/DialoGPT)
-- **Matplotlib**: Additional charting capabilities
 
 ### Financial Guidelines
 - Savings rate benchmarks (10%, 20%, 30%)
