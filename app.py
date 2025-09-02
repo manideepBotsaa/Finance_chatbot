@@ -1,239 +1,482 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
 from transformers import pipeline
-import json
-from datetime import datetime
-import numpy as np
+
+# Optional Gemini import
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+    genai = None
 
 # Page configuration
 st.set_page_config(
     page_title="Personal Finance Assistant",
     page_icon="💰",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Simple dark theme with attractive font
-st.markdown("""
-<style>
-    /* Import attractive font */
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+def apply_theme():
+    """Apply theme-specific CSS based on current theme"""
+    theme = st.session_state.theme
     
-    /* Global dark theme */
-    .stApp {
-        font-family: 'Poppins', sans-serif;
-        background-color: #1a1a1a;
-        color: #e0e0e0;
-    }
+    if theme == 'dark':
+        # Dark theme styles
+        st.markdown("""
+        <style>
+            /* Import attractive font */
+            @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+            
+            /* Global dark theme */
+            .stApp {
+                font-family: 'Poppins', sans-serif;
+                background-color: #1a1a1a;
+                color: #e0e0e0;
+            }
+            
+            /* Main container */
+            .main .block-container {
+                background-color: #2d2d2d;
+                border-radius: 12px;
+                padding: 2rem;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                border: 1px solid #404040;
+            }
+            
+            /* Header */
+            .main-header {
+                text-align: center;
+                color: #ffffff;
+                font-size: 2.5rem;
+                font-weight: 600;
+                margin-bottom: 1.5rem;
+                letter-spacing: -0.5px;
+            }
+            
+            /* Sidebar */
+            .css-1d391kg {
+                background-color: #252525;
+                border-radius: 12px;
+                border: 1px solid #404040;
+            }
+            
+            /* Sidebar headers */
+            .css-1d391kg h1, .css-1d391kg h2, .css-1d391kg h3 {
+                color: #ffffff;
+                font-weight: 500;
+                border-bottom: 1px solid #404040;
+                padding-bottom: 0.5rem;
+            }
+            
+            /* Profile card */
+            .profile-card {
+                background-color: #3a3a3a;
+                color: #e0e0e0;
+                padding: 1rem;
+                border-radius: 8px;
+                border: 1px solid #505050;
+                margin: 1rem 0;
+            }
+            
+            /* Chat messages */
+            .stChatMessage {
+                background-color: #3a3a3a;
+                border-radius: 12px;
+                border: 1px solid #505050;
+                margin: 0.5rem 0;
+            }
+            
+            /* User messages */
+            .stChatMessage[data-testid="user-message"] {
+                background-color: #4a4a4a;
+                border-left: 3px solid #6c63ff;
+            }
+            
+            /* Assistant messages */
+            .stChatMessage[data-testid="assistant-message"] {
+                background-color: #353535;
+                border-left: 3px solid #00d4aa;
+            }
+            
+            /* Metrics */
+            .css-1xarl3l {
+                background-color: #3a3a3a;
+                border-radius: 8px;
+                border: 1px solid #505050;
+                transition: transform 0.2s ease;
+            }
+            
+            /* Form inputs */
+            .stTextInput > div > div > input,
+            .stNumberInput > div > div > input,
+            .stSelectbox > div > div > select,
+            .stTextArea > div > div > textarea {
+                background-color: #404040;
+                color: #e0e0e0;
+                border: 1px solid #606060;
+                border-radius: 6px;
+                font-family: 'Poppins', sans-serif;
+            }
+            
+            /* Expander */
+            .streamlit-expanderHeader {
+                background-color: #3a3a3a;
+                color: #e0e0e0;
+                border: 1px solid #505050;
+                border-radius: 8px;
+                font-weight: 500;
+            }
+            
+            .streamlit-expanderContent {
+                background-color: #2d2d2d;
+                border: 1px solid #505050;
+                border-top: none;
+                border-radius: 0 0 8px 8px;
+            }
+            
+            /* Form styling */
+            .stForm {
+                background-color: #353535;
+                border-radius: 12px;
+                border: 1px solid #505050;
+                padding: 1.5rem;
+            }
+            
+            /* Text styling */
+            h1, h2, h3, h4, h5, h6 {
+                color: #ffffff;
+                font-family: 'Poppins', sans-serif;
+            }
+            
+            p, div, span {
+                color: #e0e0e0;
+                font-family: 'Poppins', sans-serif;
+            }
+            
+            /* Custom scrollbar */
+            ::-webkit-scrollbar-track {
+                background: #2d2d2d;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+    else:
+        # Light theme styles
+        st.markdown("""
+        <style>
+            /* Import attractive font */
+            @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+            
+            /* Global light theme */
+            .stApp {
+                font-family: 'Poppins', sans-serif;
+                background-color: #ffffff;
+                color: #333333;
+            }
+            
+            /* Main container */
+            .main .block-container {
+                background-color: #f8f9fa;
+                border-radius: 12px;
+                padding: 2rem;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                border: 1px solid #e0e0e0;
+            }
+            
+            /* Header */
+            .main-header {
+                text-align: center;
+                color: #2c3e50;
+                font-size: 2.5rem;
+                font-weight: 600;
+                margin-bottom: 1.5rem;
+                letter-spacing: -0.5px;
+            }
+            
+            /* Sidebar */
+            .css-1d391kg {
+                background-color: #f1f3f4;
+                border-radius: 12px;
+                border: 1px solid #d0d7de;
+            }
+            
+            /* Sidebar headers */
+            .css-1d391kg h1, .css-1d391kg h2, .css-1d391kg h3 {
+                color: #2c3e50;
+                font-weight: 500;
+                border-bottom: 1px solid #d0d7de;
+                padding-bottom: 0.5rem;
+            }
+            
+            /* Profile card */
+            .profile-card {
+                background-color: #ffffff;
+                color: #333333;
+                padding: 1rem;
+                border-radius: 8px;
+                border: 1px solid #d0d7de;
+                margin: 1rem 0;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+            
+            /* Chat messages */
+            .stChatMessage {
+                background-color: #ffffff;
+                border-radius: 12px;
+                border: 1px solid #d0d7de;
+                margin: 0.5rem 0;
+            }
+            
+            /* User messages */
+            .stChatMessage[data-testid="user-message"] {
+                background-color: #f0f7ff;
+                border-left: 3px solid #6c63ff;
+            }
+            
+            /* Assistant messages */
+            .stChatMessage[data-testid="assistant-message"] {
+                background-color: #f0fff4;
+                border-left: 3px solid #00d4aa;
+            }
+            
+            /* Metrics */
+            .css-1xarl3l {
+                background-color: #ffffff;
+                border-radius: 8px;
+                border: 1px solid #d0d7de;
+                transition: transform 0.2s ease;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+            
+            /* Form inputs */
+            .stTextInput > div > div > input,
+            .stNumberInput > div > div > input,
+            .stSelectbox > div > div > select,
+            .stTextArea > div > div > textarea {
+                background-color: #ffffff;
+                color: #333333;
+                border: 1px solid #d0d7de;
+                border-radius: 6px;
+                font-family: 'Poppins', sans-serif;
+            }
+            
+            /* Expander */
+            .streamlit-expanderHeader {
+                background-color: #ffffff;
+                color: #333333;
+                border: 1px solid #d0d7de;
+                border-radius: 8px;
+                font-weight: 500;
+            }
+            
+            .streamlit-expanderContent {
+                background-color: #f8f9fa;
+                border: 1px solid #d0d7de;
+                border-top: none;
+                border-radius: 0 0 8px 8px;
+            }
+            
+            /* Form styling */
+            .stForm {
+                background-color: #ffffff;
+                border-radius: 12px;
+                border: 1px solid #d0d7de;
+                padding: 1.5rem;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+            
+            /* Text styling */
+            h1, h2, h3, h4, h5, h6 {
+                color: #2c3e50;
+                font-family: 'Poppins', sans-serif;
+            }
+            
+            p, div, span {
+                color: #333333;
+                font-family: 'Poppins', sans-serif;
+            }
+            
+            /* Custom scrollbar */
+            ::-webkit-scrollbar-track {
+                background: #f1f3f4;
+            }
+        </style>
+        """, unsafe_allow_html=True)
     
-    /* Main container */
-    .main .block-container {
-        background-color: #2d2d2d;
-        border-radius: 12px;
-        padding: 2rem;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        border: 1px solid #404040;
-    }
-    
-    /* Header */
-    .main-header {
-        text-align: center;
-        color: #ffffff;
-        font-size: 2.5rem;
-        font-weight: 600;
-        margin-bottom: 1.5rem;
-        letter-spacing: -0.5px;
-    }
-    
-    /* Sidebar */
-    .css-1d391kg {
-        background-color: #252525;
-        border-radius: 12px;
-        border: 1px solid #404040;
-    }
-    
-    /* Sidebar headers */
-    .css-1d391kg h1, .css-1d391kg h2, .css-1d391kg h3 {
-        color: #ffffff;
-        font-weight: 500;
-        border-bottom: 1px solid #404040;
-        padding-bottom: 0.5rem;
-    }
-    
-    /* Profile card */
-    .profile-card {
-        background-color: #3a3a3a;
-        color: #e0e0e0;
-        padding: 1rem;
-        border-radius: 8px;
-        border: 1px solid #505050;
-        margin: 1rem 0;
-    }
-    
-    /* Disclaimer */
-    .disclaimer {
-        background-color: #2a2a2a;
-        border: 1px solid #505050;
-        border-radius: 8px;
-        padding: 1rem;
-        color: #d0d0d0;
-        margin: 1rem 0;
-    }
-    
-    /* Chat messages */
-    .stChatMessage {
-        background-color: #3a3a3a;
-        border-radius: 12px;
-        border: 1px solid #505050;
-        margin: 0.5rem 0;
-    }
-    
-    /* User messages */
-    .stChatMessage[data-testid="user-message"] {
-        background-color: #4a4a4a;
-        border-left: 3px solid #6c63ff;
-    }
-    
-    /* Assistant messages */
-    .stChatMessage[data-testid="assistant-message"] {
-        background-color: #353535;
-        border-left: 3px solid #00d4aa;
-    }
-    
-    /* Metrics */
-    .css-1xarl3l {
-        background-color: #3a3a3a;
-        border-radius: 8px;
-        border: 1px solid #505050;
-        transition: transform 0.2s ease;
-    }
-    
-    .css-1xarl3l:hover {
-        transform: translateY(-2px);
-        border-color: #6c63ff;
-    }
-    
-    /* Buttons */
-    .stButton > button {
-        background-color: #6c63ff;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        font-weight: 500;
-        font-family: 'Poppins', sans-serif;
-        transition: all 0.2s ease;
-    }
-    
-    .stButton > button:hover {
-        background-color: #5a52d5;
-        transform: translateY(-1px);
-    }
-    
-    /* Form inputs */
-    .stTextInput > div > div > input,
-    .stNumberInput > div > div > input,
-    .stSelectbox > div > div > select,
-    .stTextArea > div > div > textarea {
-        background-color: #404040;
-        color: #e0e0e0;
-        border: 1px solid #606060;
-        border-radius: 6px;
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .stTextInput > div > div > input:focus,
-    .stNumberInput > div > div > input:focus,
-    .stSelectbox > div > div > select:focus,
-    .stTextArea > div > div > textarea:focus {
-        border-color: #6c63ff;
-        box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
-    }
-    
-    /* Expander */
-    .streamlit-expanderHeader {
-        background-color: #3a3a3a;
-        color: #e0e0e0;
-        border: 1px solid #505050;
-        border-radius: 8px;
-        font-weight: 500;
-    }
-    
-    .streamlit-expanderContent {
-        background-color: #2d2d2d;
-        border: 1px solid #505050;
-        border-top: none;
-        border-radius: 0 0 8px 8px;
-    }
-    
-    /* Success/Error/Warning messages */
-    .stSuccess {
-        background-color: #1a4d3a;
-        border: 1px solid #28a745;
-        color: #90ee90;
-    }
-    
-    .stError {
-        background-color: #4d1a1a;
-        border: 1px solid #dc3545;
-        color: #ffb3b3;
-    }
-    
-    .stWarning {
-        background-color: #4d4d1a;
-        border: 1px solid #ffc107;
-        color: #ffeb99;
-    }
-    
-    .stInfo {
-        background-color: #1a3a4d;
-        border: 1px solid #17a2b8;
-        color: #99d6e6;
-    }
-    
-    /* Custom scrollbar */
-    ::-webkit-scrollbar {
-        width: 8px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: #2d2d2d;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: #6c63ff;
-        border-radius: 4px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: #5a52d5;
-    }
-    
-    /* Form styling */
-    .stForm {
-        background-color: #353535;
-        border-radius: 12px;
-        border: 1px solid #505050;
-        padding: 1.5rem;
-    }
-    
-    /* Text styling */
-    h1, h2, h3, h4, h5, h6 {
-        color: #ffffff;
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    p, div, span {
-        color: #e0e0e0;
-        font-family: 'Poppins', sans-serif;
-    }
-</style>
-""", unsafe_allow_html=True)
+    # Common styles for both themes
+    st.markdown("""
+    <style>
+        /* Navigation Header */
+        .nav-container {
+            background: linear-gradient(135deg, rgba(108, 99, 255, 0.1), rgba(0, 212, 170, 0.1));
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(108, 99, 255, 0.2);
+            backdrop-filter: blur(20px);
+        }
+        
+        .nav-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(45deg, #6c63ff, #00d4aa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+        }
+        
+        /* Enhanced Buttons */
+        .stButton > button {
+            background: linear-gradient(135deg, #6c63ff, #5a52d5);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(108, 99, 255, 0.3);
+        }
+        
+        .stButton > button:hover {
+            background: linear-gradient(135deg, #5a52d5, #4a47c4);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 99, 255, 0.4);
+        }
+        
+        /* Enhanced Selectbox */
+        .stSelectbox > div > div > select {
+            background: linear-gradient(135deg, rgba(108, 99, 255, 0.1), rgba(0, 212, 170, 0.1));
+            border: 2px solid rgba(108, 99, 255, 0.3);
+            border-radius: 12px;
+            padding: 0.75rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .stSelectbox > div > div > select:hover {
+            border-color: #6c63ff;
+            box-shadow: 0 4px 15px rgba(108, 99, 255, 0.2);
+        }
+        
+        /* Card-like containers */
+        .metric-card {
+            background: linear-gradient(135deg, rgba(108, 99, 255, 0.1), rgba(0, 212, 170, 0.1));
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(108, 99, 255, 0.2);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(108, 99, 255, 0.3);
+            border-color: #6c63ff;
+        }
+        
+        /* Enhanced metrics */
+        .css-1xarl3l {
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(108, 99, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .css-1xarl3l:hover {
+            transform: translateY(-4px);
+            border-color: #6c63ff;
+            box-shadow: 0 8px 25px rgba(108, 99, 255, 0.3);
+        }
+        
+        /* Form enhancements */
+        .stForm {
+            border-radius: 16px;
+            border: 1px solid rgba(108, 99, 255, 0.2);
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stTextInput > div > div > input:focus,
+        .stNumberInput > div > div > input:focus,
+        .stSelectbox > div > div > select:focus,
+        .stTextArea > div > div > textarea:focus {
+            border-color: #6c63ff;
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
+        }
+        
+        /* Enhanced messages */
+        .stSuccess {
+            border-radius: 12px;
+            border: 2px solid #28a745;
+            padding: 1rem;
+            font-weight: 500;
+        }
+        
+        .stError {
+            border-radius: 12px;
+            border: 2px solid #dc3545;
+            padding: 1rem;
+            font-weight: 500;
+        }
+        
+        .stWarning {
+            border-radius: 12px;
+            border: 2px solid #ffc107;
+            padding: 1rem;
+            font-weight: 500;
+        }
+        
+        .stInfo {
+            border-radius: 12px;
+            border: 2px solid #17a2b8;
+            padding: 1rem;
+            font-weight: 500;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #6c63ff, #00d4aa);
+            border-radius: 6px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #5a52d5, #00b894);
+        }
+        
+        /* Chat message enhancements */
+        .stChatMessage {
+            border-radius: 16px;
+            margin: 1rem 0;
+            border: 1px solid rgba(108, 99, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Expander enhancements */
+        .streamlit-expanderHeader {
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .streamlit-expanderHeader:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(108, 99, 255, 0.2);
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
-# Initialize session state
+# Initialize session state first
 if 'messages' not in st.session_state:
     st.session_state.messages = []
 if 'user_profile' not in st.session_state:
@@ -250,16 +493,515 @@ if 'risk_tolerance' not in st.session_state:
     st.session_state.risk_tolerance = 'moderate'
 if 'expense_history' not in st.session_state:
     st.session_state.expense_history = []
+if 'theme' not in st.session_state:
+    st.session_state.theme = 'dark'
+if 'gemini_api_key' not in st.session_state:
+    st.session_state.gemini_api_key = ''
+
+# Apply the current theme after initialization
+apply_theme()
+
+def toggle_theme():
+    """Toggle between dark and light themes"""
+    st.session_state.theme = 'light' if st.session_state.theme == 'dark' else 'dark'
+
+def render_navigation_header():
+    """Render modern navigation header with theme toggle and menu"""
+    theme_icon = "☀️" if st.session_state.theme == 'dark' else "🌙"
+    
+    # Navigation header with dropdown menu
+    st.markdown("""
+    <style>
+    .nav-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        margin-bottom: 2rem;
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(108, 99, 255, 0.2);
+    }
+    .nav-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .nav-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin: 0;
+        background: linear-gradient(45deg, #6c63ff, #00d4aa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .theme-btn {
+        background: rgba(108, 99, 255, 0.1);
+        border: 1px solid rgba(108, 99, 255, 0.3);
+        border-radius: 50px;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+    .theme-btn:hover {
+        background: rgba(108, 99, 255, 0.2);
+        transform: scale(1.05);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Create navigation layout
+    col1, col2, col3 = st.columns([2, 4, 2])
+    
+    with col1:
+        if st.button(f"{theme_icon}", key="theme_toggle", help="Switch theme"):
+            toggle_theme()
+            st.rerun()
+    
+    with col2:
+        st.markdown('<h1 class="nav-title">💰 Personal Finance Assistant</h1>', unsafe_allow_html=True)
+    
+    with col3:
+        # Navigation dropdown menu
+        menu_option = st.selectbox(
+            "Navigate",
+            ["🏠 Home", "👤 Profile", "📊 Budget", "📅 Analysis", "🎯 Goals", "🔧 Tools"],
+            key="nav_menu",
+            label_visibility="collapsed"
+        )
+        return menu_option
+
+def render_home_section(assistant):
+    """Render the home section with chat interface"""
+    st.header("💬 Chat with Your Financial Assistant")
+    
+    # Gemini API Key input section
+    with st.expander("🔑 Gemini API Configuration (Optional)", expanded=not st.session_state.gemini_api_key):
+        if not GEMINI_AVAILABLE:
+            st.warning("⚠️ **Gemini package not installed**")
+            st.markdown("To enable AI-powered responses, install the package:")
+            st.code("pip install google-generativeai", language="bash")
+            st.markdown("**Current Mode**: Rule-based responses only")
+        else:
+            st.markdown("**Enable AI-powered responses with Gemini API**")
+            api_key = st.text_input(
+                "Enter your Gemini API Key:",
+                value=st.session_state.gemini_api_key,
+                type="password",
+                help="Get your free API key from https://makersuite.google.com/app/apikey"
+            )
+            
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col1:
+                if st.button("🔍 Validate Key"):
+                    if api_key:
+                        with st.spinner("Validating API key..."):
+                            assistant = FinancialAssistant()
+                            is_valid, message = assistant.validate_api_key(api_key)
+                            if is_valid:
+                                st.success(f"✅ {message}")
+                            else:
+                                st.error(f"❌ {message}")
+                    else:
+                        st.warning("Please enter an API key first.")
+            
+            with col2:
+                if st.button("💾 Save API Key"):
+                    if api_key:
+                        with st.spinner("Validating and saving..."):
+                            assistant = FinancialAssistant()
+                            is_valid, message = assistant.validate_api_key(api_key)
+                            if is_valid:
+                                st.session_state.gemini_api_key = api_key
+                                st.success(f"✅ {message}")
+                                st.rerun()
+                            else:
+                                st.error(f"❌ Invalid API key: {message}")
+                    else:
+                        st.session_state.gemini_api_key = ""
+                        st.info("API Key cleared. Using fallback responses.")
+            
+            with col3:
+                if st.button("🗑️ Clear API Key"):
+                    st.session_state.gemini_api_key = ""
+                    st.info("API Key cleared. Using fallback responses.")
+                    st.rerun()
+            
+            if st.session_state.gemini_api_key:
+                st.success("🤖 **Gemini AI Enabled** - Enhanced responses active!")
+            else:
+                st.info("🔧 **Fallback Mode** - Using rule-based responses. Add API key for AI-powered chat.")
+    
+    st.divider()
+    
+    # Chat messages
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+    
+    # Chat input
+    if prompt := st.chat_input("Ask me anything about personal finance..."):
+        # Add user message
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        # Generate response
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                context = ""
+                if st.session_state.budget_data:
+                    context = f"User's budget data: Income ₹{st.session_state.budget_data['income']:,}, Expenses ₹{st.session_state.budget_data['total_expenses']:,}, Savings ₹{st.session_state.budget_data['savings']:,}"
+                
+                response = assistant.generate_response(
+                    prompt, 
+                    st.session_state.user_profile,
+                    context
+                )
+                st.markdown(response)
+        
+        # Add assistant response
+        st.session_state.messages.append({"role": "assistant", "content": response})
+
+def render_profile_section():
+    """Render the profile management section"""
+    st.header("👤 Your Profile")
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        with st.form("profile_form"):
+            st.subheader("Personal Information")
+            age = st.number_input("Age", min_value=18, max_value=100, value=st.session_state.user_profile.get('age', 25))
+            income = st.number_input("Monthly Income (₹)", min_value=0, value=st.session_state.user_profile.get('income', 30000), step=1000)
+            demographic = st.selectbox("I am a:", ["student", "professional", "freelancer", "entrepreneur", "retiree"], 
+                                     index=["student", "professional", "freelancer", "entrepreneur", "retiree"].index(st.session_state.user_profile.get('demographic', 'professional')))
+            goals = st.text_area("Financial Goals", 
+                               value=st.session_state.user_profile.get('goals', ''),
+                               placeholder="e.g., Save for laptop, buy a house, retirement planning")
+            
+            st.subheader("Risk Tolerance")
+            risk_tolerance = st.radio(
+                "Investment Risk Preference:",
+                ["conservative", "moderate", "aggressive"],
+                index=["conservative", "moderate", "aggressive"].index(st.session_state.risk_tolerance),
+                help="Conservative: Safe investments, Moderate: Balanced approach, Aggressive: Higher risk/reward"
+            )
+            
+            submitted = st.form_submit_button("Update Profile", use_container_width=True)
+            
+            if submitted:
+                st.session_state.user_profile = {
+                    'age': age,
+                    'income': income,
+                    'demographic': demographic,
+                    'goals': goals
+                }
+                st.session_state.risk_tolerance = risk_tolerance
+                st.success("Profile updated successfully!")
+                st.rerun()
+    
+    with col2:
+        # Display current profile
+        if st.session_state.user_profile:
+            st.subheader("Current Profile")
+            profile = st.session_state.user_profile
+            
+            st.markdown(f"""
+            <div class="profile-card">
+            <h3>📋 Profile Summary</h3>
+            <p><strong>Age:</strong> {profile.get('age', 'Not set')}</p>
+            <p><strong>Monthly Income:</strong> ₹{profile.get('income', 0):,}</p>
+            <p><strong>Type:</strong> {profile.get('demographic', 'Not set').title()}</p>
+            <p><strong>Risk Tolerance:</strong> {st.session_state.risk_tolerance.title()}</p>
+            <p><strong>Goals:</strong> {profile.get('goals', 'Not set')}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.info("👆 Please fill out your profile information to get personalized advice!")
+
+def render_budget_section():
+    """Render the budget analysis section"""
+    st.header("📊 Budget Analysis")
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        with st.form("budget_form"):
+            st.subheader("Monthly Expenses")
+            rent = st.number_input("Rent/Housing (₹)", min_value=0, value=10000)
+            food = st.number_input("Food & Groceries (₹)", min_value=0, value=5000)
+            transport = st.number_input("Transport (₹)", min_value=0, value=3000)
+            utilities = st.number_input("Utilities (₹)", min_value=0, value=2000)
+            entertainment = st.number_input("Entertainment (₹)", min_value=0, value=3000)
+            shopping = st.number_input("Shopping (₹)", min_value=0, value=2000)
+            others = st.number_input("Others (₹)", min_value=0, value=1000)
+            
+            analyze_budget = st.form_submit_button("Analyze Budget", use_container_width=True)
+            
+            if analyze_budget:
+                income = st.session_state.user_profile.get('income', 0)
+                expenses = {
+                    'Rent/Housing': rent,
+                    'Food & Groceries': food,
+                    'Transport': transport,
+                    'Utilities': utilities,
+                    'Entertainment': entertainment,
+                    'Shopping': shopping,
+                    'Others': others
+                }
+                
+                total_expenses = sum(expenses.values())
+                savings = income - total_expenses
+                
+                st.session_state.budget_data = {
+                    'income': income,
+                    'expenses': expenses,
+                    'total_expenses': total_expenses,
+                    'savings': savings
+                }
+                
+                st.success("Budget analyzed!")
+                st.rerun()
+    
+    with col2:
+        # Display budget analysis if available
+        if st.session_state.budget_data:
+            display_budget_analysis()
+        else:
+            st.info("👈 Fill out the budget form to see your analysis!")
+
+def render_analysis_section():
+    """Render the monthly analysis section"""
+    st.header("📅 Monthly Analysis")
+    
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        # Add custom category
+        with st.form("add_category_form"):
+            st.subheader("Add Custom Category")
+            new_category = st.text_input("Category Name", placeholder="e.g., Gym Membership, Pet Care")
+            add_category = st.form_submit_button("Add Category")
+            
+            if add_category and new_category:
+                if new_category not in st.session_state.custom_categories:
+                    st.session_state.custom_categories.append(new_category)
+                    st.success(f"Added '{new_category}' category!")
+                    st.rerun()
+                else:
+                    st.warning("Category already exists!")
+        
+        # Monthly expense input
+        with st.form("monthly_expenses_form"):
+            st.subheader("Monthly Expenses")
+            
+            # Default categories
+            default_categories = {
+                "Food & Dining": 0,
+                "Transportation": 0,
+                "Shopping": 0,
+                "Entertainment": 0,
+                "Bills & Utilities": 0,
+                "Healthcare": 0
+            }
+            
+            # Collect expenses for default categories
+            monthly_expenses = {}
+            for category in default_categories:
+                amount = st.number_input(f"{category} (₹)", min_value=0, value=0, step=100, key=f"default_{category}")
+                monthly_expenses[category] = amount
+            
+            # Collect expenses for custom categories
+            for category in st.session_state.custom_categories:
+                amount = st.number_input(f"{category} (₹)", min_value=0, value=0, step=100, key=f"custom_{category}")
+                monthly_expenses[category] = amount
+            
+            # Month selection
+            selected_month = st.selectbox("Month", 
+                ["January", "February", "March", "April", "May", "June",
+                 "July", "August", "September", "October", "November", "December"])
+            
+            analyze_month = st.form_submit_button("Analyze This Month", use_container_width=True)
+            
+            if analyze_month:
+                # Filter out zero expenses
+                filtered_expenses = {k: v for k, v in monthly_expenses.items() if v > 0}
+                
+                if filtered_expenses:
+                    st.session_state.monthly_analysis = {
+                        'month': selected_month,
+                        'expenses': filtered_expenses,
+                        'total': sum(filtered_expenses.values()),
+                        'timestamp': pd.Timestamp.now().strftime("%Y-%m-%d %H:%M")
+                    }
+                    st.success(f"Analyzed expenses for {selected_month}!")
+                    st.rerun()
+                else:
+                    st.warning("Please add at least one expense amount!")
+    
+    with col2:
+        display_monthly_analysis()
+
+def render_goals_section():
+    """Render the savings goals section"""
+    st.header("🎯 Savings Goals")
+    
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        # Add new goal
+        with st.form("add_goal_form"):
+            st.subheader("Add Savings Goal")
+            goal_name = st.text_input("Goal Name", placeholder="e.g., New Laptop, Vacation")
+            target_amount = st.number_input("Target Amount (₹)", min_value=0, value=20000, step=1000)
+            monthly_savings = st.number_input("Monthly Savings (₹)", min_value=0, value=2000, step=100)
+            priority = st.selectbox("Priority", ["High", "Medium", "Low"])
+            
+            add_goal = st.form_submit_button("Add Goal", use_container_width=True)
+            
+            if add_goal and goal_name and target_amount > 0:
+                months_needed = target_amount / monthly_savings if monthly_savings > 0 else float('inf')
+                
+                new_goal = {
+                    'name': goal_name,
+                    'target': target_amount,
+                    'monthly_savings': monthly_savings,
+                    'current_saved': 0,
+                    'priority': priority,
+                    'months_needed': months_needed,
+                    'created_date': pd.Timestamp.now().strftime("%Y-%m-%d")
+                }
+                
+                st.session_state.savings_goals.append(new_goal)
+                st.success(f"Added goal: {goal_name}!")
+                st.rerun()
+        
+        # Update progress
+        if st.session_state.savings_goals:
+            with st.form("update_progress_form"):
+                st.subheader("Update Progress")
+                goal_names = [goal['name'] for goal in st.session_state.savings_goals]
+                selected_goal = st.selectbox("Select Goal", goal_names)
+                amount_saved = st.number_input("Amount Saved This Month (₹)", min_value=0, value=0, step=100)
+                
+                update_progress = st.form_submit_button("Update Progress", use_container_width=True)
+                
+                if update_progress and amount_saved > 0:
+                    for goal in st.session_state.savings_goals:
+                        if goal['name'] == selected_goal:
+                            goal['current_saved'] += amount_saved
+                            st.success(f"Updated {selected_goal} progress!")
+                            st.rerun()
+                            break
+    
+    with col2:
+        display_savings_goals()
+
+def render_tools_section():
+    """Render the tools and analysis section"""
+    st.header("🔧 Tools & Analysis")
+    
+    # Tools selection with attractive cards
+    st.subheader("Select a Tool")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("📊 Investment Calculator", use_container_width=True):
+            st.session_state.selected_tool = "Investment Calculator"
+        if st.button("📈 What-If Scenarios", use_container_width=True):
+            st.session_state.selected_tool = "What-If Scenarios"
+    
+    with col2:
+        if st.button("📁 CSV Upload", use_container_width=True):
+            st.session_state.selected_tool = "CSV Upload"
+        if st.button("🚨 Spending Alerts", use_container_width=True):
+            st.session_state.selected_tool = "Spending Alerts"
+    
+    # Display selected tool
+    if 'selected_tool' in st.session_state:
+        st.divider()
+        if st.session_state.selected_tool == "Investment Calculator":
+            investment_calculator()
+        elif st.session_state.selected_tool == "What-If Scenarios":
+            what_if_simulator()
+        elif st.session_state.selected_tool == "CSV Upload":
+            csv_expense_uploader()
+        elif st.session_state.selected_tool == "Spending Alerts":
+            spending_alerts()
 
 class FinancialAssistant:
     def __init__(self):
-        self.load_model()
+        self.gemini_model = None
+        self.setup_gemini()
+    
+    def validate_api_key(self, api_key):
+        """Validate Gemini API key by making a test request"""
+        if not GEMINI_AVAILABLE or not api_key:
+            return False, "Gemini package not available or no API key provided"
+            
+        try:
+            # Configure with the test API key
+            genai.configure(api_key=api_key)
+            
+            # Try to create a model and make a simple test request
+            model_names = ['gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-pro']
+            
+            for model_name in model_names:
+                try:
+                    test_model = genai.GenerativeModel(model_name)
+                    # Make a simple test request
+                    response = test_model.generate_content("Hello")
+                    if response and response.text:
+                        return True, f"API key valid! Using model: {model_name}"
+                except Exception:
+                    continue
+            
+            return False, "API key invalid or no compatible models found"
+            
+        except Exception as e:
+            return False, f"API key validation failed: {str(e)}"
+    
+    def setup_gemini(self):
+        """Setup Gemini API if key is available"""
+        if not GEMINI_AVAILABLE:
+            return False
+            
+        if st.session_state.gemini_api_key:
+            try:
+                genai.configure(api_key=st.session_state.gemini_api_key)
+                # Try different model names based on availability
+                model_names = ['gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-pro']
+                model_created = False
+                
+                for model_name in model_names:
+                    try:
+                        self.gemini_model = genai.GenerativeModel(model_name)
+                        model_created = True
+                        break
+                    except Exception:
+                        continue
+                
+                if not model_created:
+                    raise Exception("No compatible Gemini model found")
+                return True
+            except Exception as e:
+                st.error(f"Error setting up Gemini: {e}")
+                return False
+        return False
     
     @st.cache_resource
     def load_model(_self):
-        """Load Granite model for text generation"""
+        """Load fallback model for text generation"""
         try:
-            # Using a lighter model for demo purposes - replace with Granite when available
             generator = pipeline(
                 "text-generation",
                 model="microsoft/DialoGPT-medium",
@@ -272,39 +1014,44 @@ class FinancialAssistant:
             return None
     
     def generate_response(self, user_input, user_profile, context=""):
-        """Generate personalized financial advice"""
-        if not self.load_model():
-            return "I'm having trouble connecting to my AI model. Please try again later."
-        
-        # Create demographic-aware prompt
-        demographic = user_profile.get('demographic', 'general')
-        age = user_profile.get('age', 'unknown')
-        income = user_profile.get('income', 'unknown')
-        goals = user_profile.get('goals', 'general financial wellness')
-        
-        if demographic == 'student':
-            tone = "friendly, simple, and example-based"
-            focus = "small savings strategies, budgeting tips, and affordable options"
+        """Generate personalized financial advice using Gemini or fallback"""
+        # Try Gemini first if API key is available
+        if st.session_state.gemini_api_key and self.setup_gemini():
+            return self.generate_gemini_response(user_input, user_profile, context)
         else:
-            tone = "professional, structured, and detailed"
-            focus = "investment strategies, tax optimization, and wealth building"
-        
-        prompt = f"""
-        You are a helpful financial advisor. Respond in a {tone} manner.
-        User profile: {demographic}, age {age}, income ₹{income}, goals: {goals}
-        Focus on: {focus}
-        
-        User question: {user_input}
-        Context: {context}
-        
-        Provide practical, personalized financial advice:
-        """
-        
-        try:
-            # Simulate Granite response with rule-based logic for demo
+            # Fallback to rule-based response
             return self.generate_rule_based_response(user_input, user_profile)
+    
+    def generate_gemini_response(self, user_input, user_profile, context=""):
+        """Generate response using Gemini API"""
+        try:
+            demographic = user_profile.get('demographic', 'general')
+            age = user_profile.get('age', 'unknown')
+            income = user_profile.get('income', 'unknown')
+            goals = user_profile.get('goals', 'general financial wellness')
+            
+            prompt = f"""You are a helpful and knowledgeable financial advisor. Provide personalized financial advice based on the user's profile and question.
+
+User Profile:
+- Demographic: {demographic}
+- Age: {age}
+- Income: ₹{income}
+- Goals: {goals}
+
+User Question: {user_input}
+
+Context: {context}
+
+Please provide practical, actionable financial advice in a friendly and professional tone. Keep responses concise but informative. Use Indian currency (₹) and consider Indian financial context.
+
+Important: Always include a disclaimer that this is general advice and users should consult qualified financial professionals for personalized guidance."""
+            
+            response = self.gemini_model.generate_content(prompt)
+            return response.text
+            
         except Exception as e:
-            return f"I encountered an error while processing your request. Please try rephrasing your question."
+            st.error(f"Error with Gemini API: {e}")
+            return self.generate_rule_based_response(user_input, user_profile)
     
     def generate_rule_based_response(self, user_input, user_profile):
         """Rule-based response generation as fallback"""
@@ -316,7 +1063,7 @@ class FinancialAssistant:
         # Savings-related queries
         if any(word in user_input_lower for word in ['save', 'saving', 'savings']):
             if demographic == 'student':
-                return f"""Great question! As a student, here are some practical saving tips:
+                return """Great question! As a student, here are some practical saving tips:
 
 💡 **Start Small**: Try saving ₹500-1000 monthly by:
 - Cooking at home instead of ordering food
@@ -461,92 +1208,6 @@ What would you like to know about? Feel free to ask questions like:
 
 I'm here to provide personalized advice based on your situation!"""
 
-def collect_user_profile():
-    """Collect user profile information"""
-    st.sidebar.header("👤 Your Profile")
-    
-    with st.sidebar.form("profile_form"):
-        age = st.number_input("Age", min_value=18, max_value=100, value=25)
-        income = st.number_input("Monthly Income (₹)", min_value=0, value=30000, step=1000)
-        demographic = st.selectbox("I am a:", ["student", "professional", "freelancer", "entrepreneur", "retiree"])
-        goals = st.text_area("Financial Goals", 
-                           placeholder="e.g., Save for laptop, buy a house, retirement planning")
-        
-        # Risk tolerance assessment
-        st.markdown("### Risk Tolerance")
-        risk_tolerance = st.radio(
-            "Investment Risk Preference:",
-            ["conservative", "moderate", "aggressive"],
-            index=1,
-            help="Conservative: Safe investments, Moderate: Balanced approach, Aggressive: Higher risk/reward"
-        )
-        
-        submitted = st.form_submit_button("Update Profile")
-        
-        if submitted:
-            st.session_state.user_profile = {
-                'age': age,
-                'income': income,
-                'demographic': demographic,
-                'goals': goals
-            }
-            st.session_state.risk_tolerance = risk_tolerance
-            st.success("Profile updated!")
-    
-    # Display current profile
-    if st.session_state.user_profile:
-        st.sidebar.markdown("### Current Profile")
-        profile = st.session_state.user_profile
-        st.sidebar.markdown(f"""
-        <div class="profile-card">
-        <strong>Age:</strong> {profile.get('age', 'Not set')}<br>
-        <strong>Income:</strong> ₹{profile.get('income', 0):,}/month<br>
-        <strong>Type:</strong> {profile.get('demographic', 'Not set').title()}<br>
-        <strong>Risk:</strong> {st.session_state.risk_tolerance.title()}<br>
-        <strong>Goals:</strong> {profile.get('goals', 'Not set')}
-        </div>
-        """, unsafe_allow_html=True)
-
-def budget_analyzer():
-    """Budget analysis interface"""
-    st.sidebar.header("📊 Budget Analyzer")
-    
-    with st.sidebar.form("budget_form"):
-        st.markdown("### Monthly Expenses")
-        rent = st.number_input("Rent/Housing (₹)", min_value=0, value=10000)
-        food = st.number_input("Food & Groceries (₹)", min_value=0, value=5000)
-        transport = st.number_input("Transport (₹)", min_value=0, value=3000)
-        utilities = st.number_input("Utilities (₹)", min_value=0, value=2000)
-        entertainment = st.number_input("Entertainment (₹)", min_value=0, value=3000)
-        shopping = st.number_input("Shopping (₹)", min_value=0, value=2000)
-        others = st.number_input("Others (₹)", min_value=0, value=1000)
-        
-        analyze_budget = st.form_submit_button("Analyze Budget")
-        
-        if analyze_budget:
-            income = st.session_state.user_profile.get('income', 0)
-            expenses = {
-                'Rent/Housing': rent,
-                'Food & Groceries': food,
-                'Transport': transport,
-                'Utilities': utilities,
-                'Entertainment': entertainment,
-                'Shopping': shopping,
-                'Others': others
-            }
-            
-            total_expenses = sum(expenses.values())
-            savings = income - total_expenses
-            
-            st.session_state.budget_data = {
-                'income': income,
-                'expenses': expenses,
-                'total_expenses': total_expenses,
-                'savings': savings
-            }
-            
-            st.success("Budget analyzed! Check the main area for insights.")
-
 def display_budget_analysis():
     """Display budget analysis with charts"""
     if not st.session_state.budget_data:
@@ -646,128 +1307,6 @@ def generate_budget_insights(data):
         for rec in recommendations:
             st.markdown(f"- {rec}")
 
-def monthly_analysis_section():
-    """Monthly analysis with custom expense categories"""
-    st.sidebar.header("📅 Monthly Analysis")
-    
-    # Add custom category
-    with st.sidebar.form("add_category_form"):
-        st.markdown("### Add Custom Category")
-        new_category = st.text_input("Category Name", placeholder="e.g., Gym Membership, Pet Care")
-        add_category = st.form_submit_button("Add Category")
-        
-        if add_category and new_category:
-            if new_category not in st.session_state.custom_categories:
-                st.session_state.custom_categories.append(new_category)
-                st.success(f"Added '{new_category}' category!")
-            else:
-                st.warning("Category already exists!")
-    
-    # Monthly expense input
-    if st.session_state.custom_categories:
-        with st.sidebar.form("monthly_expenses_form"):
-            st.markdown("### Monthly Expenses")
-            
-            # Default categories
-            default_categories = {
-                "Food & Dining": 0,
-                "Transportation": 0,
-                "Shopping": 0,
-                "Entertainment": 0,
-                "Bills & Utilities": 0,
-                "Healthcare": 0
-            }
-            
-            # Collect expenses for default categories
-            monthly_expenses = {}
-            for category in default_categories:
-                amount = st.number_input(f"{category} (₹)", min_value=0, value=0, step=100, key=f"default_{category}")
-                monthly_expenses[category] = amount
-            
-            # Collect expenses for custom categories
-            for category in st.session_state.custom_categories:
-                amount = st.number_input(f"{category} (₹)", min_value=0, value=0, step=100, key=f"custom_{category}")
-                monthly_expenses[category] = amount
-            
-            # Month selection
-            selected_month = st.selectbox("Month", 
-                ["January", "February", "March", "April", "May", "June",
-                 "July", "August", "September", "October", "November", "December"])
-            
-            analyze_month = st.form_submit_button("Analyze This Month")
-            
-            if analyze_month:
-                # Filter out zero expenses
-                filtered_expenses = {k: v for k, v in monthly_expenses.items() if v > 0}
-                
-                if filtered_expenses:
-                    st.session_state.monthly_analysis = {
-                        'month': selected_month,
-                        'expenses': filtered_expenses,
-                        'total': sum(filtered_expenses.values()),
-                        'timestamp': pd.Timestamp.now().strftime("%Y-%m-%d %H:%M")
-                    }
-                    st.success(f"Analyzed expenses for {selected_month}!")
-                else:
-                    st.warning("Please add at least one expense amount!")
-    
-    # Remove category option
-    if st.session_state.custom_categories:
-        st.sidebar.markdown("### Manage Categories")
-        category_to_remove = st.sidebar.selectbox("Remove Category", 
-            ["Select category to remove..."] + st.session_state.custom_categories)
-        
-        if st.sidebar.button("Remove Selected Category"):
-            if category_to_remove != "Select category to remove...":
-                st.session_state.custom_categories.remove(category_to_remove)
-                st.success(f"Removed '{category_to_remove}' category!")
-
-def savings_goal_tracker():
-    """Savings goal tracker with progress visualization"""
-    st.sidebar.header("🎯 Savings Goals")
-    
-    # Add new goal
-    with st.sidebar.form("add_goal_form"):
-        st.markdown("### Add Savings Goal")
-        goal_name = st.text_input("Goal Name", placeholder="e.g., New Laptop, Vacation")
-        target_amount = st.number_input("Target Amount (₹)", min_value=0, value=20000, step=1000)
-        monthly_savings = st.number_input("Monthly Savings (₹)", min_value=0, value=2000, step=100)
-        priority = st.selectbox("Priority", ["High", "Medium", "Low"])
-        
-        add_goal = st.form_submit_button("Add Goal")
-        
-        if add_goal and goal_name and target_amount > 0:
-            months_needed = target_amount / monthly_savings if monthly_savings > 0 else float('inf')
-            
-            new_goal = {
-                'name': goal_name,
-                'target': target_amount,
-                'monthly_savings': monthly_savings,
-                'current_saved': 0,
-                'priority': priority,
-                'months_needed': months_needed,
-                'created_date': pd.Timestamp.now().strftime("%Y-%m-%d")
-            }
-            
-            st.session_state.savings_goals.append(new_goal)
-            st.success(f"Added goal: {goal_name}!")
-    
-    # Update progress
-    if st.session_state.savings_goals:
-        with st.sidebar.form("update_progress_form"):
-            st.markdown("### Update Progress")
-            goal_names = [goal['name'] for goal in st.session_state.savings_goals]
-            selected_goal = st.selectbox("Select Goal", goal_names)
-            amount_saved = st.number_input("Amount Saved This Month (₹)", min_value=0, value=0, step=100)
-            
-            update_progress = st.form_submit_button("Update Progress")
-            
-            if update_progress and amount_saved > 0:
-                for goal in st.session_state.savings_goals:
-                    if goal['name'] == selected_goal:
-                        goal['current_saved'] += amount_saved
-                        st.success(f"Updated {selected_goal} progress!")
-                        break
 
 def display_savings_goals():
     """Display savings goals with progress bars"""
@@ -799,7 +1338,7 @@ def display_savings_goals():
                 st.metric("Priority", goal['priority'])
             
             with col3:
-                if st.button(f"Remove", key=f"remove_goal_{i}"):
+                if st.button("Remove", key=f"remove_goal_{i}"):
                     st.session_state.savings_goals.pop(i)
                     st.rerun()
         
@@ -835,8 +1374,27 @@ def csv_expense_uploader():
                 # Process the data
                 df_clean = df[[amount_col, category_col, date_col]].copy()
                 df_clean.columns = ['Amount', 'Category', 'Date']
+                
+                # Clean and convert amount column
                 df_clean['Amount'] = pd.to_numeric(df_clean['Amount'], errors='coerce')
-                df_clean = df_clean.dropna()
+                
+                # Convert date column
+                try:
+                    df_clean['Date'] = pd.to_datetime(df_clean['Date'], errors='coerce')
+                except Exception as e:
+                    st.warning(f"Date format not recognized: {str(e)}. Using original date values.")
+                
+                # Remove rows with invalid data
+                initial_rows = len(df_clean)
+                df_clean = df_clean.dropna(subset=['Amount'])
+                final_rows = len(df_clean)
+                
+                if initial_rows > final_rows:
+                    st.info(f"Removed {initial_rows - final_rows} rows with invalid data.")
+                
+                if len(df_clean) == 0:
+                    st.error("No valid data found after cleaning. Please check your data format.")
+                    return
                 
                 # Store in session state
                 st.session_state.expense_history = df_clean.to_dict('records')
@@ -846,31 +1404,56 @@ def csv_expense_uploader():
                 
                 total_expenses = df_clean['Amount'].sum()
                 avg_expense = df_clean['Amount'].mean()
+                max_expense = df_clean['Amount'].max()
                 
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     st.metric("Total Expenses", f"₹{total_expenses:,.0f}")
                 with col2:
                     st.metric("Average Expense", f"₹{avg_expense:,.0f}")
                 with col3:
-                    st.metric("Number of Transactions", len(df_clean))
+                    st.metric("Highest Expense", f"₹{max_expense:,.0f}")
+                with col4:
+                    st.metric("Transactions", len(df_clean))
                 
                 # Category breakdown
-                category_summary = df_clean.groupby('Category')['Amount'].sum().sort_values(ascending=False)
+                if len(df_clean) > 0:
+                    category_summary = df_clean.groupby('Category')['Amount'].sum().sort_values(ascending=False)
+                    
+                    # Create bar chart
+                    fig_category = px.bar(
+                        x=category_summary.index,
+                        y=category_summary.values,
+                        title="Expenses by Category",
+                        labels={'x': 'Category', 'y': 'Amount (₹)'},
+                        color=category_summary.values,
+                        color_continuous_scale="Viridis"
+                    )
+                    
+                    # Update layout for better visibility
+                    theme_colors = {
+                        'dark': {'bg': 'rgba(0,0,0,0)', 'text': 'white'},
+                        'light': {'bg': 'rgba(255,255,255,0)', 'text': 'black'}
+                    }
+                    current_theme = st.session_state.get('theme', 'dark')
+                    colors = theme_colors[current_theme]
+                    
+                    fig_category.update_layout(
+                        plot_bgcolor=colors['bg'],
+                        paper_bgcolor=colors['bg'],
+                        font_color=colors['text'],
+                        xaxis_title="Category",
+                        yaxis_title="Amount (₹)"
+                    )
+                    st.plotly_chart(fig_category, use_container_width=True)
+                    
+                    # Show top categories
+                    st.subheader("💰 Top Spending Categories")
+                    for i, (category, amount) in enumerate(category_summary.head(5).items(), 1):
+                        percentage = (amount / total_expenses) * 100
+                        st.write(f"{i}. **{category}**: ₹{amount:,.0f} ({percentage:.1f}%)")
                 
-                fig_category = px.bar(
-                    x=category_summary.index,
-                    y=category_summary.values,
-                    title="Expenses by Category",
-                    color=category_summary.values,
-                    color_continuous_scale="Viridis"
-                )
-                fig_category.update_layout(
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    font_color='white'
-                )
-                st.plotly_chart(fig_category, use_container_width=True)
+                st.success("✅ Data analyzed successfully! You can now ask the chatbot about your expenses.")
                 
         except Exception as e:
             st.error(f"Error processing file: {str(e)}")
@@ -1164,87 +1747,33 @@ def generate_monthly_insights(data):
 
 def main():
     """Main application"""
+    # Render navigation header with theme toggle and menu
+    selected_menu = render_navigation_header()
+    
     # Initialize assistant
     assistant = FinancialAssistant()
     
-    # Header
-    st.markdown('<h1 class="main-header">💰 Personal Finance Assistant</h1>', unsafe_allow_html=True)
+    # Handle navigation
+    if selected_menu == "👤 Profile":
+        render_profile_section()
+    elif selected_menu == "📊 Budget":
+        render_budget_section()
+    elif selected_menu == "📅 Analysis":
+        render_analysis_section()
+    elif selected_menu == "🎯 Goals":
+        render_goals_section()
+    elif selected_menu == "🔧 Tools":
+        render_tools_section()
+    else:  # Home
+        render_home_section(assistant)
     
-    # Disclaimer
+    # Disclaimer at bottom
     st.markdown("""
     <div class="disclaimer">
-    <strong>⚠️ Disclaimer:</strong> This chatbot provides general financial guidance and is not a licensed financial advisor. 
+    < This chatbot provides general financial guidance and is not a licensed financial advisor. 
     Please consult with qualified professionals for personalized financial advice.
     </div>
     """, unsafe_allow_html=True)
-    
-    # Sidebar
-    collect_user_profile()
-    budget_analyzer()
-    monthly_analysis_section()
-    savings_goal_tracker()
-    
-    # Main content tabs
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["💬 Chat Assistant", "📊 Budget Analysis", "📅 Monthly Analysis", "🎯 Savings Goals", "🔮 Tools & Analysis"])
-    
-    with tab1:
-        st.header("💬 Chat with Your Financial Assistant")
-        
-        # Chat messages
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-        
-        # Chat input
-        if prompt := st.chat_input("Ask me anything about personal finance..."):
-            # Add user message
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
-            
-            # Generate response
-            with st.chat_message("assistant"):
-                with st.spinner("Thinking..."):
-                    context = ""
-                    if st.session_state.budget_data:
-                        context = f"User's budget data: Income ₹{st.session_state.budget_data['income']:,}, Expenses ₹{st.session_state.budget_data['total_expenses']:,}, Savings ₹{st.session_state.budget_data['savings']:,}"
-                    
-                    response = assistant.generate_response(
-                        prompt, 
-                        st.session_state.user_profile,
-                        context
-                    )
-                    st.markdown(response)
-            
-            # Add assistant response
-            st.session_state.messages.append({"role": "assistant", "content": response})
-    
-    with tab2:
-        # Display budget analysis if available
-        if st.session_state.budget_data:
-            display_budget_analysis()
-        else:
-            st.info("💡 Use the Budget Analyzer in the sidebar to get started with budget analysis!")
-    
-    with tab3:
-        display_monthly_analysis()
-    
-    with tab4:
-        display_savings_goals()
-    
-    with tab5:
-        # Tools and Analysis section
-        tool_option = st.selectbox("Select Tool", 
-            ["Spending Alerts", "What-If Scenarios", "CSV Upload", "Investment Calculator"])
-        
-        if tool_option == "Spending Alerts":
-            spending_alerts()
-        elif tool_option == "What-If Scenarios":
-            what_if_simulator()
-        elif tool_option == "CSV Upload":
-            csv_expense_uploader()
-        elif tool_option == "Investment Calculator":
-            investment_calculator()
 
 if __name__ == "__main__":
     main()
