@@ -15,7 +15,7 @@ A comprehensive Streamlit-based financial chatbot that provides personalized fin
 - **Streamlit**: Web interface framework
 - **Pandas**: Data analysis and calculations
 - **Plotly**: Interactive visualizations
-- **Transformers**: AI model integration (Granite/DialoGPT)
+- **Transformers**: AI model integration (IBM Granite-Hugging Face model)
 - **Matplotlib**: Additional charting capabilities
 ### 🎯 Core Functionality
 - **Personalized Chat Interface**: Natural language financial conversations with AI
