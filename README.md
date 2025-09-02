@@ -1,29 +1,40 @@
 # Personal Finance Assistant 💰
 
-A comprehensive Streamlit-based financial chatbot that provides personalized financial guidance using AI. The assistant adapts its communication style and recommendations based on user demographics (student vs professional) and provides interactive budget analysis with visualizations.
+A comprehensive Streamlit-based financial chatbot that provides personalized financial guidance using AI. The assistant features a modern dark theme with attractive Poppins font, adapts its communication style based on user demographics and risk tolerance, and provides advanced financial tools including savings goal tracking, spending alerts, and investment calculators.
 
 ## Features
 
 ### 🎯 Core Functionality
-- **Personalized Chat Interface**: Natural language financial conversations
-- **User Profile Management**: Age, income, goals, and demographic tracking
+- **Personalized Chat Interface**: Natural language financial conversations with AI
+- **Enhanced User Profiling**: Age, income, goals, demographic, and risk tolerance assessment
+- **Multi-Tab Interface**: Organized sections for chat, budget analysis, monthly tracking, savings goals, and tools
+- **Dark Theme UI**: Clean, modern interface with attractive Poppins font
+- **Demographic-Aware Responses**: Tailored advice for students, professionals, freelancers, entrepreneurs, and retirees
+
+### 📊 Advanced Budget & Analytics
 - **Budget Analysis**: Comprehensive income/expense tracking with visual charts
-- **Spending Insights**: Automated detection of overspending patterns
-- **Demographic-Aware Responses**: Tailored advice for students vs professionals
+- **Monthly Analysis**: Custom expense categories with flexible tracking
+- **CSV Upload**: Import and analyze expense data from bank statements
+- **Spending Alerts**: Automated detection of overspending patterns and anomalies
+- **What-If Scenarios**: Simulate income changes and expense reductions
 
-### 📊 Budget & Analytics
-- Interactive expense tracking forms
-- Real-time budget calculations
-- Visual charts (pie charts, bar graphs) using Plotly
-- Spending pattern analysis with recommendations
-- Savings rate calculations and benchmarking
+### 🎯 Savings & Goals Management
+- **Savings Goal Tracker**: Set multiple goals with progress visualization
+- **Priority-Based Planning**: High/Medium/Low priority goal management
+- **Progress Updates**: Track monthly savings progress with visual indicators
+- **Goal Timeline Calculation**: Automatic calculation of months needed to reach targets
 
-### 🤖 AI-Powered Guidance
-- Context-aware financial advice
-- Rule-based response system with AI integration
-- Personalized investment recommendations
-- Savings strategy suggestions
-- Tax optimization tips
+### 📈 Investment Tools
+- **Risk-Based Investment Calculator**: Returns based on conservative/moderate/aggressive profiles
+- **Portfolio Allocation**: Customized asset allocation recommendations
+- **SIP Calculator**: Compound interest calculations for systematic investments
+- **Tax-Saving Options**: ELSS, PPF, and NPS recommendations
+
+### 🤖 Enhanced AI Guidance
+- **Risk-Aware Advice**: Investment recommendations based on risk tolerance
+- **Multi-Demographic Support**: Specialized advice for different user types
+- **Context-Aware Responses**: Considers user profile, budget data, and goals
+- **Spending Pattern Analysis**: Intelligent insights and recommendations
 
 ## Installation
 
@@ -42,30 +53,53 @@ A comprehensive Streamlit-based financial chatbot that provides personalized fin
 
 ## Usage Guide
 
-### Setting Up Your Profile
+### 1. Setting Up Your Profile
 1. Use the sidebar "Your Profile" section
-2. Enter your age, monthly income, demographic (student/professional), and financial goals
-3. Click "Update Profile" to save
+2. Enter your age, monthly income, demographic (student/professional/freelancer/entrepreneur/retiree)
+3. Set your risk tolerance (conservative/moderate/aggressive)
+4. Add your financial goals
+5. Click "Update Profile" to save
 
-### Budget Analysis
+### 2. Budget Analysis
 1. Fill out the "Budget Analyzer" form in the sidebar
 2. Enter your monthly expenses across different categories
 3. Click "Analyze Budget" to generate insights
-4. View detailed charts and recommendations in the main area
+4. View detailed charts and recommendations in the "Budget Analysis" tab
 
-### Chat Interface
+### 3. Monthly Analysis (Custom Expenses)
+1. Add custom expense categories in the "Monthly Analysis" section
+2. Input your monthly expenses for each category
+3. Select the month you're analyzing
+4. View personalized insights and visualizations
+
+### 4. Savings Goals
+1. Set multiple savings goals with target amounts
+2. Define monthly savings for each goal
+3. Set priorities (High/Medium/Low)
+4. Track progress with visual progress bars
+5. Update progress monthly
+
+### 5. Advanced Tools
+- **Spending Alerts**: Get warnings for overspending in categories
+- **What-If Scenarios**: Simulate income/expense changes
+- **CSV Upload**: Import bank statements for automatic analysis
+- **Investment Calculator**: Calculate returns based on your risk profile
+
+### 6. Chat Interface
 - Ask natural language questions about finances
+- Get risk-aware investment advice
 - Examples:
-  - "How do I save for a laptop?"
-  - "What investments should I consider?"
-  - "Help me create a budget"
-  - "How much should I spend on entertainment?"
+  - "How do I save for a laptop and bike together?"
+  - "What investments suit my aggressive risk profile?"
+  - "Help me create a budget for a freelancer"
+  - "Show me what-if scenarios for 20% income increase"
 
 ## Sample Test Profiles
 
 ### Student Profile
 - **Age**: 20
 - **Income**: ₹10,000/month
+- **Risk Tolerance**: Conservative
 - **Goals**: Save for laptop and emergency fund
 - **Sample Budget**:
   - Housing: ₹4,000
@@ -76,12 +110,25 @@ A comprehensive Streamlit-based financial chatbot that provides personalized fin
 ### Professional Profile
 - **Age**: 28
 - **Income**: ₹1,00,000/month
+- **Risk Tolerance**: Moderate
 - **Goals**: House down payment, retirement planning
 - **Sample Budget**:
   - Housing: ₹25,000
   - Food: ₹8,000
   - Transport: ₹5,000
   - Others: ₹33,000
+
+### Entrepreneur Profile
+- **Age**: 35
+- **Income**: ₹2,50,000/month (variable)
+- **Risk Tolerance**: Aggressive
+- **Goals**: Business expansion, wealth building
+- **Sample Budget**:
+  - Housing: ₹40,000
+  - Food: ₹15,000
+  - Transport: ₹10,000
+  - Business: ₹50,000
+  - Others: ₹25,000
 
 ## Technical Architecture
 
@@ -174,14 +221,37 @@ FINANCIAL_GUIDELINES = {
 - Large datasets are processed efficiently with Pandas
 - Charts are rendered client-side for better performance
 
+## Application Structure
+
+### Main Tabs
+1. **Chat Assistant**: AI-powered financial conversations with risk-aware advice
+2. **Budget Analysis**: Comprehensive expense tracking and visualization
+3. **Monthly Analysis**: Custom expense categories and monthly insights
+4. **Savings Goals**: Multi-goal tracking with progress visualization
+5. **Tools & Analysis**: Advanced features including:
+   - Spending Alerts & Anomaly Detection
+   - What-If Scenario Simulator
+   - CSV Expense Upload & Analysis
+   - Investment Calculator with Risk Profiles
+
+### Sidebar Features
+- **User Profile**: Demographics, income, goals, and risk tolerance
+- **Budget Analyzer**: Quick expense input and analysis
+- **Monthly Analysis**: Custom category management
+- **Savings Goal Tracker**: Goal creation and progress updates
+
 ## Future Enhancements
 
-- [ ] Integration with real Granite model API
-- [ ] Export budget data to Excel/PDF
-- [ ] Investment portfolio tracking
-- [ ] Goal-based savings tracking
-- [ ] Multi-language support
-- [ ] Mobile-responsive design improvements
+- [ ] Integration with real banking APIs for automatic transaction import
+- [ ] Export budget data to Excel/PDF reports
+- [ ] Advanced portfolio tracking with real-time market data
+- [ ] Recurring vs one-time expense categorization
+- [ ] Tax estimation and inflation adjustment tools
+- [ ] Multi-language support (Hindi, Tamil, etc.)
+- [ ] Voice input/output capabilities
+- [ ] Mobile app version
+- [ ] Gamification features (badges, achievements)
+- [ ] Educational resources and financial literacy modules
 
 ## Contributing
 
