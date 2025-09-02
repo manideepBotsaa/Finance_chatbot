@@ -107,47 +107,6 @@ A comprehensive Streamlit-based financial chatbot that provides personalized fin
   - "Help me create a budget for a freelancer"
   - "Show me what-if scenarios for 20% income increase"
 
-## Sample Test Profiles
-
-### Student Profile
-- **Age**: 20
-- **Income**: ₹10,000/month
-- **Risk Tolerance**: Conservative
-- **Goals**: Save for laptop and emergency fund
-- **Sample Budget**:
-  - Housing: ₹4,000
-  - Food: ₹2,500
-  - Transport: ₹1,000
-  - Others: ₹2,500
-
-### Professional Profile
-- **Age**: 28
-- **Income**: ₹1,00,000/month
-- **Risk Tolerance**: Moderate
-- **Goals**: House down payment, retirement planning
-- **Sample Budget**:
-  - Housing: ₹25,000
-  - Food: ₹8,000
-  - Transport: ₹5,000
-  - Others: ₹33,000
-
-### Entrepreneur Profile
-- **Age**: 35
-- **Income**: ₹2,50,000/month (variable)
-- **Risk Tolerance**: Aggressive
-- **Goals**: Business expansion, wealth building
-- **Sample Budget**:
-  - Housing: ₹40,000
-  - Food: ₹15,000
-  - Transport: ₹10,000
-  - Business: ₹50,000
-  - Others: ₹25,000
-
-### Financial Guidelines
-- Savings rate benchmarks (10%, 20%, 30%)
-- Expense ratio guidelines by category
-- Demographic-specific advice templates
-
 ## Features in Detail
 
 ### 💬 Chat Interface
