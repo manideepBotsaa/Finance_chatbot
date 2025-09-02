@@ -244,6 +244,12 @@ if 'monthly_analysis' not in st.session_state:
     st.session_state.monthly_analysis = {}
 if 'custom_categories' not in st.session_state:
     st.session_state.custom_categories = []
+if 'savings_goals' not in st.session_state:
+    st.session_state.savings_goals = []
+if 'risk_tolerance' not in st.session_state:
+    st.session_state.risk_tolerance = 'moderate'
+if 'expense_history' not in st.session_state:
+    st.session_state.expense_history = []
 
 class FinancialAssistant:
     def __init__(self):
@@ -340,34 +346,83 @@ Would you like a detailed investment breakdown?"""
         
         # Investment queries
         elif any(word in user_input_lower for word in ['invest', 'investment', 'sip', 'mutual fund']):
+            risk_tolerance = st.session_state.risk_tolerance
+            
             if demographic == 'student':
-                return """As a student, start with these simple investment steps:
+                if risk_tolerance == 'conservative':
+                    return """As a student with conservative risk preference:
 
-🌱 **Begin Small**:
+🛡️ **Safe Start**:
+- Begin with ₹500/month in debt funds
+- Fixed deposits for emergency fund
+- PPF for long-term tax savings
+
+📚 **Learn & Grow**: 
+- Start with 80% debt, 20% equity
+- Use SIP to average out market volatility
+- Focus on large-cap funds initially"""
+                elif risk_tolerance == 'aggressive':
+                    return """As a student ready for higher risk:
+
+🚀 **Growth Focus**:
+- Start with ₹1000/month in equity funds
+- 70% equity, 30% debt allocation
+- Consider small-cap funds for higher returns
+
+⚡ **High Growth Strategy**:
+- Index funds + sectoral funds
+- Start early for compound growth advantage
+- Review and increase SIP annually"""
+                else:
+                    return """As a student with moderate risk appetite:
+
+⚖️ **Balanced Approach**:
 - Start with ₹500-1000/month SIP
-- Choose index funds (low cost, diversified)
+- 50% equity, 50% debt allocation
+- Mix of large-cap and mid-cap funds
+
+📈 **Steady Growth**: 
 - Use apps like Groww or Zerodha Coin
-
-📚 **Learn First**: 
-- Understand risk vs returns
-- Start with large-cap funds (safer)
-- Avoid stock picking initially
-
-Remember: Consistency matters more than amount!"""
+- Increase investment as income grows
+- Focus on consistency over amount"""
             else:
-                return f"""Here's a professional investment strategy for your ₹{income:,} monthly income:
+                # Professional investment advice based on risk tolerance
+                if risk_tolerance == 'conservative':
+                    return f"""Conservative investment strategy for ₹{income:,} income:
 
-📊 **Asset Allocation**:
-- Equity (60%): ₹{income*0.12:,.0f}/month in diversified funds
-- Debt (30%): ₹{income*0.06:,.0f}/month in debt funds/FDs
-- Gold (10%): ₹{income*0.02:,.0f}/month in gold ETFs
+🛡️ **Low-Risk Portfolio**:
+- Debt funds (60%): ₹{income*0.12:,.0f}/month
+- Large-cap equity (30%): ₹{income*0.06:,.0f}/month  
+- Gold ETF (10%): ₹{income*0.02:,.0f}/month
 
-🏛️ **Tax-Saving Options**:
+🏛️ **Tax-Efficient Options**:
+- PPF: ₹12,500/month for 15-year lock-in
+- ELSS: Tax-saving with 3-year lock-in
+- NSC/FD: For stable returns"""
+                elif risk_tolerance == 'aggressive':
+                    return f"""Aggressive growth strategy for ₹{income:,} income:
+
+🚀 **High-Growth Portfolio**:
+- Equity funds (70%): ₹{income*0.14:,.0f}/month
+- Mid/Small cap (20%): ₹{income*0.04:,.0f}/month
+- International funds (10%): ₹{income*0.02:,.0f}/month
+
+📈 **Growth Focus**:
+- Sectoral funds for higher returns
+- Direct equity for experienced investors
+- Regular portfolio rebalancing"""
+                else:
+                    return f"""Balanced investment strategy for ₹{income:,} income:
+
+⚖️ **Moderate Portfolio**:
+- Equity funds (60%): ₹{income*0.12:,.0f}/month
+- Debt funds (30%): ₹{income*0.06:,.0f}/month
+- Gold/International (10%): ₹{income*0.02:,.0f}/month
+
+🎯 **Tax-Saving Options**:
 - ELSS funds: Up to ₹1.5L under 80C
 - PPF: 15-year lock-in, tax-free returns
-- NPS: Additional ₹50K deduction under 80CCD
-
-Want me to create a detailed investment portfolio?"""
+- NPS: Additional ₹50K deduction under 80CCD"""
         
         # Budget queries
         elif any(word in user_input_lower for word in ['budget', 'expense', 'spending']):
@@ -413,9 +468,18 @@ def collect_user_profile():
     with st.sidebar.form("profile_form"):
         age = st.number_input("Age", min_value=18, max_value=100, value=25)
         income = st.number_input("Monthly Income (₹)", min_value=0, value=30000, step=1000)
-        demographic = st.selectbox("I am a:", ["student", "professional"])
+        demographic = st.selectbox("I am a:", ["student", "professional", "freelancer", "entrepreneur", "retiree"])
         goals = st.text_area("Financial Goals", 
                            placeholder="e.g., Save for laptop, buy a house, retirement planning")
+        
+        # Risk tolerance assessment
+        st.markdown("### Risk Tolerance")
+        risk_tolerance = st.radio(
+            "Investment Risk Preference:",
+            ["conservative", "moderate", "aggressive"],
+            index=1,
+            help="Conservative: Safe investments, Moderate: Balanced approach, Aggressive: Higher risk/reward"
+        )
         
         submitted = st.form_submit_button("Update Profile")
         
@@ -426,6 +490,7 @@ def collect_user_profile():
                 'demographic': demographic,
                 'goals': goals
             }
+            st.session_state.risk_tolerance = risk_tolerance
             st.success("Profile updated!")
     
     # Display current profile
@@ -437,6 +502,7 @@ def collect_user_profile():
         <strong>Age:</strong> {profile.get('age', 'Not set')}<br>
         <strong>Income:</strong> ₹{profile.get('income', 0):,}/month<br>
         <strong>Type:</strong> {profile.get('demographic', 'Not set').title()}<br>
+        <strong>Risk:</strong> {st.session_state.risk_tolerance.title()}<br>
         <strong>Goals:</strong> {profile.get('goals', 'Not set')}
         </div>
         """, unsafe_allow_html=True)
@@ -580,6 +646,522 @@ def generate_budget_insights(data):
         for rec in recommendations:
             st.markdown(f"- {rec}")
 
+def monthly_analysis_section():
+    """Monthly analysis with custom expense categories"""
+    st.sidebar.header("📅 Monthly Analysis")
+    
+    # Add custom category
+    with st.sidebar.form("add_category_form"):
+        st.markdown("### Add Custom Category")
+        new_category = st.text_input("Category Name", placeholder="e.g., Gym Membership, Pet Care")
+        add_category = st.form_submit_button("Add Category")
+        
+        if add_category and new_category:
+            if new_category not in st.session_state.custom_categories:
+                st.session_state.custom_categories.append(new_category)
+                st.success(f"Added '{new_category}' category!")
+            else:
+                st.warning("Category already exists!")
+    
+    # Monthly expense input
+    if st.session_state.custom_categories:
+        with st.sidebar.form("monthly_expenses_form"):
+            st.markdown("### Monthly Expenses")
+            
+            # Default categories
+            default_categories = {
+                "Food & Dining": 0,
+                "Transportation": 0,
+                "Shopping": 0,
+                "Entertainment": 0,
+                "Bills & Utilities": 0,
+                "Healthcare": 0
+            }
+            
+            # Collect expenses for default categories
+            monthly_expenses = {}
+            for category in default_categories:
+                amount = st.number_input(f"{category} (₹)", min_value=0, value=0, step=100, key=f"default_{category}")
+                monthly_expenses[category] = amount
+            
+            # Collect expenses for custom categories
+            for category in st.session_state.custom_categories:
+                amount = st.number_input(f"{category} (₹)", min_value=0, value=0, step=100, key=f"custom_{category}")
+                monthly_expenses[category] = amount
+            
+            # Month selection
+            selected_month = st.selectbox("Month", 
+                ["January", "February", "March", "April", "May", "June",
+                 "July", "August", "September", "October", "November", "December"])
+            
+            analyze_month = st.form_submit_button("Analyze This Month")
+            
+            if analyze_month:
+                # Filter out zero expenses
+                filtered_expenses = {k: v for k, v in monthly_expenses.items() if v > 0}
+                
+                if filtered_expenses:
+                    st.session_state.monthly_analysis = {
+                        'month': selected_month,
+                        'expenses': filtered_expenses,
+                        'total': sum(filtered_expenses.values()),
+                        'timestamp': pd.Timestamp.now().strftime("%Y-%m-%d %H:%M")
+                    }
+                    st.success(f"Analyzed expenses for {selected_month}!")
+                else:
+                    st.warning("Please add at least one expense amount!")
+    
+    # Remove category option
+    if st.session_state.custom_categories:
+        st.sidebar.markdown("### Manage Categories")
+        category_to_remove = st.sidebar.selectbox("Remove Category", 
+            ["Select category to remove..."] + st.session_state.custom_categories)
+        
+        if st.sidebar.button("Remove Selected Category"):
+            if category_to_remove != "Select category to remove...":
+                st.session_state.custom_categories.remove(category_to_remove)
+                st.success(f"Removed '{category_to_remove}' category!")
+
+def savings_goal_tracker():
+    """Savings goal tracker with progress visualization"""
+    st.sidebar.header("🎯 Savings Goals")
+    
+    # Add new goal
+    with st.sidebar.form("add_goal_form"):
+        st.markdown("### Add Savings Goal")
+        goal_name = st.text_input("Goal Name", placeholder="e.g., New Laptop, Vacation")
+        target_amount = st.number_input("Target Amount (₹)", min_value=0, value=20000, step=1000)
+        monthly_savings = st.number_input("Monthly Savings (₹)", min_value=0, value=2000, step=100)
+        priority = st.selectbox("Priority", ["High", "Medium", "Low"])
+        
+        add_goal = st.form_submit_button("Add Goal")
+        
+        if add_goal and goal_name and target_amount > 0:
+            months_needed = target_amount / monthly_savings if monthly_savings > 0 else float('inf')
+            
+            new_goal = {
+                'name': goal_name,
+                'target': target_amount,
+                'monthly_savings': monthly_savings,
+                'current_saved': 0,
+                'priority': priority,
+                'months_needed': months_needed,
+                'created_date': pd.Timestamp.now().strftime("%Y-%m-%d")
+            }
+            
+            st.session_state.savings_goals.append(new_goal)
+            st.success(f"Added goal: {goal_name}!")
+    
+    # Update progress
+    if st.session_state.savings_goals:
+        with st.sidebar.form("update_progress_form"):
+            st.markdown("### Update Progress")
+            goal_names = [goal['name'] for goal in st.session_state.savings_goals]
+            selected_goal = st.selectbox("Select Goal", goal_names)
+            amount_saved = st.number_input("Amount Saved This Month (₹)", min_value=0, value=0, step=100)
+            
+            update_progress = st.form_submit_button("Update Progress")
+            
+            if update_progress and amount_saved > 0:
+                for goal in st.session_state.savings_goals:
+                    if goal['name'] == selected_goal:
+                        goal['current_saved'] += amount_saved
+                        st.success(f"Updated {selected_goal} progress!")
+                        break
+
+def display_savings_goals():
+    """Display savings goals with progress bars"""
+    if not st.session_state.savings_goals:
+        st.info("💡 Use the Savings Goals section in the sidebar to set your financial targets!")
+        return
+    
+    st.header("🎯 Your Savings Goals")
+    
+    for i, goal in enumerate(st.session_state.savings_goals):
+        with st.container():
+            col1, col2, col3 = st.columns([3, 1, 1])
+            
+            with col1:
+                progress = min(goal['current_saved'] / goal['target'], 1.0)
+                st.markdown(f"### {goal['name']}")
+                st.progress(progress)
+                
+                remaining = max(goal['target'] - goal['current_saved'], 0)
+                months_remaining = remaining / goal['monthly_savings'] if goal['monthly_savings'] > 0 else float('inf')
+                
+                st.markdown(f"""
+                **Target:** ₹{goal['target']:,} | **Saved:** ₹{goal['current_saved']:,} | **Remaining:** ₹{remaining:,}
+                
+                **Progress:** {progress*100:.1f}% | **Months to go:** {months_remaining:.1f}
+                """)
+            
+            with col2:
+                st.metric("Priority", goal['priority'])
+            
+            with col3:
+                if st.button(f"Remove", key=f"remove_goal_{i}"):
+                    st.session_state.savings_goals.pop(i)
+                    st.rerun()
+        
+        st.divider()
+
+def csv_expense_uploader():
+    """CSV expense upload and analysis"""
+    st.header("📁 Upload Expense Data")
+    
+    uploaded_file = st.file_uploader("Upload CSV file", type=['csv'])
+    
+    if uploaded_file is not None:
+        try:
+            df = pd.read_csv(uploaded_file)
+            st.success("File uploaded successfully!")
+            
+            # Display sample data
+            st.subheader("📋 Data Preview")
+            st.dataframe(df.head(), use_container_width=True)
+            
+            # Column mapping
+            st.subheader("🔗 Map Columns")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                amount_col = st.selectbox("Amount Column", df.columns)
+            with col2:
+                category_col = st.selectbox("Category Column", df.columns)
+            with col3:
+                date_col = st.selectbox("Date Column", df.columns)
+            
+            if st.button("Analyze Uploaded Data"):
+                # Process the data
+                df_clean = df[[amount_col, category_col, date_col]].copy()
+                df_clean.columns = ['Amount', 'Category', 'Date']
+                df_clean['Amount'] = pd.to_numeric(df_clean['Amount'], errors='coerce')
+                df_clean = df_clean.dropna()
+                
+                # Store in session state
+                st.session_state.expense_history = df_clean.to_dict('records')
+                
+                # Display analysis
+                st.subheader("📊 Expense Analysis")
+                
+                total_expenses = df_clean['Amount'].sum()
+                avg_expense = df_clean['Amount'].mean()
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Total Expenses", f"₹{total_expenses:,.0f}")
+                with col2:
+                    st.metric("Average Expense", f"₹{avg_expense:,.0f}")
+                with col3:
+                    st.metric("Number of Transactions", len(df_clean))
+                
+                # Category breakdown
+                category_summary = df_clean.groupby('Category')['Amount'].sum().sort_values(ascending=False)
+                
+                fig_category = px.bar(
+                    x=category_summary.index,
+                    y=category_summary.values,
+                    title="Expenses by Category",
+                    color=category_summary.values,
+                    color_continuous_scale="Viridis"
+                )
+                fig_category.update_layout(
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    font_color='white'
+                )
+                st.plotly_chart(fig_category, use_container_width=True)
+                
+        except Exception as e:
+            st.error(f"Error processing file: {str(e)}")
+
+def what_if_simulator():
+    """What-if scenario simulation"""
+    st.header("🔮 What-If Scenarios")
+    
+    if not st.session_state.user_profile:
+        st.warning("Please set up your profile first!")
+        return
+    
+    current_income = st.session_state.user_profile.get('income', 0)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("📈 Income Change Simulation")
+        income_change = st.slider("Income Change (%)", -50, 100, 0)
+        new_income = current_income * (1 + income_change/100)
+        
+        st.metric("New Monthly Income", f"₹{new_income:,.0f}", f"{income_change:+.0f}%")
+        
+        if st.session_state.budget_data:
+            current_expenses = st.session_state.budget_data.get('total_expenses', 0)
+            new_savings = new_income - current_expenses
+            savings_change = new_savings - st.session_state.budget_data.get('savings', 0)
+            
+            st.metric("New Monthly Savings", f"₹{new_savings:,.0f}", f"₹{savings_change:+,.0f}")
+    
+    with col2:
+        st.subheader("💸 Expense Reduction Simulation")
+        expense_reduction = st.slider("Expense Reduction (%)", 0, 50, 0)
+        
+        if st.session_state.budget_data:
+            current_expenses = st.session_state.budget_data.get('total_expenses', 0)
+            new_expenses = current_expenses * (1 - expense_reduction/100)
+            expense_savings = current_expenses - new_expenses
+            
+            st.metric("New Monthly Expenses", f"₹{new_expenses:,.0f}", f"-₹{expense_savings:,.0f}")
+            
+            new_total_savings = current_income - new_expenses
+            additional_savings = new_total_savings - st.session_state.budget_data.get('savings', 0)
+            
+            st.metric("Additional Savings", f"₹{additional_savings:,.0f}")
+
+def spending_alerts():
+    """Generate spending alerts and anomaly detection"""
+    if not st.session_state.budget_data and not st.session_state.monthly_analysis:
+        st.info("💡 Set up your budget or monthly analysis first to get spending alerts!")
+        return
+    
+    st.header("🚨 Spending Alerts")
+    
+    alerts = []
+    
+    # Budget-based alerts
+    if st.session_state.budget_data:
+        data = st.session_state.budget_data
+        income = data.get('income', 0)
+        
+        for category, amount in data.get('expenses', {}).items():
+            percentage = (amount / income * 100) if income > 0 else 0
+            
+            if category == 'Rent/Housing' and percentage > 30:
+                alerts.append(f"🏠 **Housing Alert**: {percentage:.1f}% of income (recommended: <30%)")
+            elif category == 'Food & Groceries' and percentage > 15:
+                alerts.append(f"🍽️ **Food Alert**: {percentage:.1f}% of income (recommended: <15%)")
+            elif category == 'Entertainment' and percentage > 10:
+                alerts.append(f"🎬 **Entertainment Alert**: {percentage:.1f}% of income (recommended: <10%)")
+    
+    # Monthly analysis alerts
+    if st.session_state.monthly_analysis:
+        data = st.session_state.monthly_analysis
+        expenses = data.get('expenses', {})
+        
+        if expenses:
+            total = sum(expenses.values())
+            max_expense = max(expenses.values())
+            max_category = max(expenses, key=expenses.get)
+            
+            if max_expense / total > 0.5:
+                alerts.append(f"⚠️ **Concentration Alert**: {max_category} represents {(max_expense/total*100):.1f}% of total expenses")
+    
+    # Display alerts
+    if alerts:
+        for alert in alerts:
+            st.warning(alert)
+    else:
+        st.success("✅ No spending alerts - your budget looks healthy!")
+
+def investment_calculator():
+    """Investment calculator with risk-based recommendations"""
+    st.header("📈 Investment Calculator")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("💰 Investment Details")
+        monthly_investment = st.number_input("Monthly Investment (₹)", min_value=0, value=5000, step=500)
+        investment_period = st.number_input("Investment Period (Years)", min_value=1, value=10, step=1)
+        
+        # Risk-based returns
+        risk_tolerance = st.session_state.risk_tolerance
+        if risk_tolerance == 'conservative':
+            expected_return = 7
+            st.info("Conservative: 7% expected annual return")
+        elif risk_tolerance == 'moderate':
+            expected_return = 10
+            st.info("Moderate: 10% expected annual return")
+        else:
+            expected_return = 13
+            st.info("Aggressive: 13% expected annual return")
+    
+    with col2:
+        st.subheader("📊 Investment Projections")
+        
+        # Calculate compound interest
+        total_invested = monthly_investment * 12 * investment_period
+        monthly_rate = expected_return / 100 / 12
+        total_months = investment_period * 12
+        
+        # SIP future value formula
+        if monthly_rate > 0:
+            future_value = monthly_investment * (((1 + monthly_rate) ** total_months - 1) / monthly_rate) * (1 + monthly_rate)
+        else:
+            future_value = total_invested
+        
+        returns = future_value - total_invested
+        
+        st.metric("Total Invested", f"₹{total_invested:,.0f}")
+        st.metric("Expected Returns", f"₹{returns:,.0f}")
+        st.metric("Final Amount", f"₹{future_value:,.0f}")
+        
+        # Investment allocation based on risk tolerance
+        st.subheader("🎯 Recommended Allocation")
+        if risk_tolerance == 'conservative':
+            st.markdown("""
+            - **60%** Debt Funds/FDs
+            - **30%** Large Cap Equity
+            - **10%** Gold ETF
+            """)
+        elif risk_tolerance == 'moderate':
+            st.markdown("""
+            - **50%** Equity Funds
+            - **30%** Debt Funds
+            - **20%** International/Gold
+            """)
+        else:
+            st.markdown("""
+            - **70%** Equity Funds
+            - **20%** Mid/Small Cap
+            - **10%** Debt Funds
+            """)
+
+def display_monthly_analysis():
+    """Display monthly analysis with visualizations"""
+    if not st.session_state.monthly_analysis:
+        st.info("💡 Use the Monthly Analysis section in the sidebar to track your custom expenses!")
+        return
+    
+    data = st.session_state.monthly_analysis
+    
+    st.header(f"📅 Monthly Analysis - {data['month']}")
+    st.caption(f"Last updated: {data['timestamp']}")
+    
+    # Summary metrics
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Total Expenses", f"₹{data['total']:,}")
+    
+    with col2:
+        avg_per_category = data['total'] / len(data['expenses']) if data['expenses'] else 0
+        st.metric("Avg per Category", f"₹{avg_per_category:,.0f}")
+    
+    with col3:
+        highest_expense = max(data['expenses'].values()) if data['expenses'] else 0
+        highest_category = max(data['expenses'], key=data['expenses'].get) if data['expenses'] else "None"
+        st.metric("Highest Expense", f"₹{highest_expense:,}", f"{highest_category}")
+    
+    # Visualizations
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Pie chart
+        if data['expenses']:
+            fig_pie = px.pie(
+                values=list(data['expenses'].values()),
+                names=list(data['expenses'].keys()),
+                title=f"Expense Distribution - {data['month']}",
+                color_discrete_sequence=px.colors.qualitative.Set3
+            )
+            fig_pie.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font_color='white'
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
+    
+    with col2:
+        # Bar chart
+        if data['expenses']:
+            categories = list(data['expenses'].keys())
+            amounts = list(data['expenses'].values())
+            
+            fig_bar = px.bar(
+                x=categories,
+                y=amounts,
+                title=f"Expense Breakdown - {data['month']}",
+                color=amounts,
+                color_continuous_scale="Viridis"
+            )
+            fig_bar.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font_color='white',
+                xaxis_tickangle=-45
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
+    
+    # Expense breakdown table
+    st.subheader("💰 Detailed Breakdown")
+    if data['expenses']:
+        expense_df = pd.DataFrame([
+            {"Category": cat, "Amount": f"₹{amt:,}", "Percentage": f"{(amt/data['total']*100):.1f}%"}
+            for cat, amt in sorted(data['expenses'].items(), key=lambda x: x[1], reverse=True)
+        ])
+        st.dataframe(expense_df, use_container_width=True, hide_index=True)
+    
+    # Insights
+    generate_monthly_insights(data)
+
+def generate_monthly_insights(data):
+    """Generate insights for monthly analysis"""
+    st.subheader("💡 Monthly Insights")
+    
+    if not data['expenses']:
+        return
+    
+    total = data['total']
+    expenses = data['expenses']
+    
+    # Find top spending categories
+    sorted_expenses = sorted(expenses.items(), key=lambda x: x[1], reverse=True)
+    top_category = sorted_expenses[0] if sorted_expenses else None
+    
+    insights = []
+    
+    if top_category:
+        percentage = (top_category[1] / total * 100)
+        insights.append(f"🔝 **{top_category[0]}** is your highest expense at ₹{top_category[1]:,} ({percentage:.1f}% of total)")
+    
+    # Check for balanced spending
+    if len(expenses) > 1:
+        amounts = list(expenses.values())
+        avg_amount = sum(amounts) / len(amounts)
+        high_variance = any(amt > avg_amount * 2 for amt in amounts)
+        
+        if high_variance:
+            insights.append("⚖️ **Unbalanced spending** detected - some categories are significantly higher than others")
+        else:
+            insights.append("✅ **Balanced spending** across categories")
+    
+    # Spending pattern analysis
+    if total > 0:
+        if len(expenses) <= 3:
+            insights.append("📊 **Focused spending** - You track expenses in few categories")
+        elif len(expenses) > 6:
+            insights.append("📈 **Diverse spending** - You have expenses across many categories")
+    
+    # Display insights
+    for insight in insights:
+        st.markdown(f"- {insight}")
+    
+    # Recommendations
+    st.subheader("🎯 Recommendations")
+    recommendations = []
+    
+    if top_category and (top_category[1] / total) > 0.4:
+        recommendations.append(f"Consider reducing spending in **{top_category[0]}** as it takes up a large portion of your budget")
+    
+    if len(expenses) > 8:
+        recommendations.append("Try consolidating similar expense categories for better tracking")
+    
+    recommendations.append("Set monthly limits for each category to stay within budget")
+    recommendations.append("Review and update your categories monthly to reflect changing spending patterns")
+    
+    for rec in recommendations:
+        st.markdown(f"- {rec}")
+
 def main():
     """Main application"""
     # Initialize assistant
@@ -599,43 +1181,70 @@ def main():
     # Sidebar
     collect_user_profile()
     budget_analyzer()
+    monthly_analysis_section()
+    savings_goal_tracker()
     
-    # Main chat interface
-    st.header("💬 Chat with Your Financial Assistant")
+    # Main content tabs
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["💬 Chat Assistant", "📊 Budget Analysis", "📅 Monthly Analysis", "🎯 Savings Goals", "🔮 Tools & Analysis"])
     
-    # Display budget analysis if available
-    if st.session_state.budget_data:
-        with st.expander("📊 View Budget Analysis", expanded=False):
+    with tab1:
+        st.header("💬 Chat with Your Financial Assistant")
+        
+        # Chat messages
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+        
+        # Chat input
+        if prompt := st.chat_input("Ask me anything about personal finance..."):
+            # Add user message
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            with st.chat_message("user"):
+                st.markdown(prompt)
+            
+            # Generate response
+            with st.chat_message("assistant"):
+                with st.spinner("Thinking..."):
+                    context = ""
+                    if st.session_state.budget_data:
+                        context = f"User's budget data: Income ₹{st.session_state.budget_data['income']:,}, Expenses ₹{st.session_state.budget_data['total_expenses']:,}, Savings ₹{st.session_state.budget_data['savings']:,}"
+                    
+                    response = assistant.generate_response(
+                        prompt, 
+                        st.session_state.user_profile,
+                        context
+                    )
+                    st.markdown(response)
+            
+            # Add assistant response
+            st.session_state.messages.append({"role": "assistant", "content": response})
+    
+    with tab2:
+        # Display budget analysis if available
+        if st.session_state.budget_data:
             display_budget_analysis()
+        else:
+            st.info("💡 Use the Budget Analyzer in the sidebar to get started with budget analysis!")
     
-    # Chat messages
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    with tab3:
+        display_monthly_analysis()
     
-    # Chat input
-    if prompt := st.chat_input("Ask me anything about personal finance..."):
-        # Add user message
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+    with tab4:
+        display_savings_goals()
+    
+    with tab5:
+        # Tools and Analysis section
+        tool_option = st.selectbox("Select Tool", 
+            ["Spending Alerts", "What-If Scenarios", "CSV Upload", "Investment Calculator"])
         
-        # Generate response
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                context = ""
-                if st.session_state.budget_data:
-                    context = f"User's budget data: Income ₹{st.session_state.budget_data['income']:,}, Expenses ₹{st.session_state.budget_data['total_expenses']:,}, Savings ₹{st.session_state.budget_data['savings']:,}"
-                
-                response = assistant.generate_response(
-                    prompt, 
-                    st.session_state.user_profile,
-                    context
-                )
-                st.markdown(response)
-        
-        # Add assistant response
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        if tool_option == "Spending Alerts":
+            spending_alerts()
+        elif tool_option == "What-If Scenarios":
+            what_if_simulator()
+        elif tool_option == "CSV Upload":
+            csv_expense_uploader()
+        elif tool_option == "Investment Calculator":
+            investment_calculator()
 
 if __name__ == "__main__":
     main()
